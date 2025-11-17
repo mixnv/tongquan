@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tổng quan Ma túy tỉnh Cao Bằng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family:Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals (Ghi ấm, Be, và Xanh đậm) -->
+    <!-- Application Structure Plan: Thiết kế SPA dạng tab (Tổng quan, Phân tích Số liệu, Đối tượng & Tuyến đường, Phòng chống & Giải pháp). Cấu trúc này cho phép người dùng xem tóm tắt nhanh các chỉ số chính trước tiên. Sau đó, họ có thể đi sâu vào phân tích tương tác (lọc dữ liệu theo năm), xem các chi tiết về nhân khẩu học và các tuyến đường. Cuối cùng, họ có thể đọc về các nỗ lực, thách thức và giải pháp. Luồng này rất logic, đi từ 'vấn đề' (tổng quan) đến 'phân tích chi tiết' (tương tác) và cuối cùng là 'hành động' (giải pháp), giúp người dùng dễ dàng tiếp cận và hiểu rõ thông tin phức tạp từ báo cáo. -->
+    <!-- Visualization & Content Choices: 
+        1. Tổng quan: Thẻ KPI (HTML/Tailwind) + Biểu đồ đường (Chart.js/Canvas) -> Mục tiêu: Thông tin nhanh, xem xu hướng tổng thể -> Tương tác: Chỉ hiển thị.
+        2. Phân tích Số liệu: Biểu đồ Donut (Loại ma túy) + Biểu đồ Cột (Địa bàn) (Chart.js/Canvas) -> Mục tiêu: So sánh tỷ trọng và phân bố -> Tương tác: Lọc (Dropdown) theo năm, cập nhật cả 2 biểu đồ và văn bản.
+        3. Đối tượng & Tuyến đường: Biểu đồ Cột ngang (Độ tuổi) (Chart.js/Canvas) + Sơ đồ luồng (HTML/Tailwind) -> Mục tiêu: So sánh nhân khẩu học, tổ chức hóa thông tin quy trình -> Tương tác: Chỉ hiển thị.
+        4. Phòng chống & Giải pháp: Khối văn bản dạng tab (HTML/JS) -> Mục tiêu: Sắp xếp, tổ chức thông tin văn bản thuần túy -> Tương tác: Nhấp để chuyển tab.
+        Lý do: Các lựa chọn này ưu tiên sự rõ ràng, dễ hiểu và khả năng tương tác (lọc) để khám phá dữ liệu. Chart.js (Canvas) được chọn cho tất cả các biểu đồ. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f7f4;
+            color: #1a202c;
+        }
+        .nav-link {
+            @apply px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors cursor-pointer;
+        }
+        .nav-link.active {
+            @apply bg-blue-600 text-white hover:bg-blue-700 hover:text-white;
+        }
+        .kpi-card {
+            @apply bg-white p-6 rounded-lg shadow-md transition-transform transform hover:scale-105;
+        }
+        .kpi-title {
+            @apply text-sm font-medium text-gray-500 truncate;
+        }
+        .kpi-value {
+            @apply mt-1 text-3xl font-semibold text-gray-900;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .tab-btn {
+            @apply px-4 py-2 rounded-t-lg text-gray-600 hover:text-gray-900;
+        }
+        .tab-btn.active {
+            @apply border-b-2 border-blue-600 text-blue-600 font-semibold;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <h1 class="text-3xl font-bold text-center text-blue-800">Báo cáo Tương tác: Tình hình Ma túy tại Cao Bằng</h1>
+            <p class="text-center text-gray-600 mt-1">Phân tích số liệu và các hiểu biết chính trong thời gian vừa qua</p>
+        </div>
+    </header>
+
+    <nav class="bg-white sticky top-0 z-10 shadow-md mb-8">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-center space-x-2 md:space-x-4 py-3">
+                <button class="nav-link active" data-target="overview">Tổng quan</button>
+                <button class="nav-link" data-target="analysis">Phân tích Số liệu</button>
+                <button class="nav-link" data-target="demographics">Đối tượng & Tuyến đường</button>
+                <button class="nav-link" data-target="solutions">Phòng chống & Giải pháp</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+
+        <section id="overview-section" class="content-section active">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Tổng quan Tình hình</h2>
+            <p class="text-gray-700 mb-6 max-w-3xl mx-auto text-center">
+                Phần này cung cấp cái nhìn toàn cảnh về tình hình ma túy tại Cao Bằng, bao gồm các chỉ số chính và xu hướng chung qua các năm. Đây là điểm khởi đầu để hiểu quy mô của vấn đề.
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div class="kpi-card">
+                    <h3 class="kpi-title">Tổng số vụ phát hiện</h3>
+                    <p class="kpi-value" id="kpi-cases">512</p>
+                </div>
+                <div class="kpi-card">
+                    <h3 class="kpi-title">Số đối tượng bị bắt giữ</h3>
+                    <p class="kpi-value" id="kpi-arrests">678</p>
+                </div>
+                <div class="kpi-card">
+                    <h3 class="kpi-title">Số người nghiện (có hồ sơ)</h3>
+                    <p class="kpi-value" id="kpi-users">2,150</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold text-center mb-4">Xu hướng số vụ phát hiện qua các năm</h3>
+                <div class="chart-container" style="max-width: 800px;">
+                    <canvas id="trendChart"></canvas>
+                </div>
+                <p class="text-center text-gray-600 mt-4">
+                    Biểu đồ đường này cho thấy sự biến động của số vụ ma túy được phát hiện trong ba năm qua.
+                </p>
+            </div>
+        </section>
+
+        <section id="analysis-section" class="content-section">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Phân tích Số liệu Chi tiết</h2>
+            <p class="text-gray-700 mb-6 max-w-3xl mx-auto text-center">
+                Khám phá dữ liệu sâu hơn về cơ cấu các loại ma túy và sự phân bố theo địa bàn. Sử dụng bộ lọc bên dưới để xem dữ liệu cho một năm cụ thể hoặc xem tổng hợp tất cả các năm.
+            </p>
+
+            <div class="flex justify-center mb-6">
+                <div class="flex items-center space-x-3 bg-white p-3 rounded-lg shadow-sm">
+                    <label for="year-filter" class="font-medium text-gray-700">Chọn năm:</label>
+                    <select id="year-filter" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="all">Tất cả các năm</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold text-center mb-4">Tỷ trọng các loại ma túy</h3>
+                    <div class="chart-container">
+                        <canvas id="drugTypeChart"></canvas>
+                    </div>
+                    <p class="text-center text-gray-600 mt-4" id="drug-type-context">
+                        Biểu đồ này phân tích cơ cấu các loại ma túy chính bị thu giữ.
+                    </p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold text-center mb-4">Phân bố vụ việc theo địa bàn</h3>
+                    <div class="chart-container">
+                        <canvas id="districtChart"></canvas>
+                    </div>
+                    <p class="text-center text-gray-600 mt-4" id="district-context">
+                        Số vụ việc được ghi nhận tại các huyện, thành phố trọng điểm.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="demographics-section" class="content-section">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Đối tượng và Tuyến đường</h2>
+            <p class="text-gray-700 mb-6 max-w-3xl mx-auto text-center">
+                Phần này tập trung vào đặc điểm nhân khẩu học của các đối tượng liên quan và mô tả các tuyến đường vận chuyển ma túy chủ yếu, giúp hiểu rõ hơn về bản chất của tội phạm.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold text-center mb-4">Phân bố đối tượng theo độ tuổi</h3>
+                    <div class="chart-container">
+                        <canvas id="ageChart"></canvas>
+                    </div>
+                    <p class="text-center text-gray-600 mt-4">
+                        Tỷ lệ phần trăm các nhóm tuổi trong số các đối tượng bị bắt giữ.
+                    </p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold text-center mb-4">Mô phỏng Tuyến đường chính</h3>
+                    <p class="text-gray-700 mt-6 mb-4">
+                        Do vị trí địa lý, các tuyến đường vận chuyển ma túy chính tại Cao Bằng thường có đặc điểm sau:
+                    </p>
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-3">
+                            <span class="flex-shrink-0 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">1</span>
+                            <div class="p-3 bg-gray-100 rounded-lg flex-1">
+                                <h4 class="font-semibold">Khu vực biên giới</h4>
+                                <p class="text-sm text-gray-600">Ma túy được vận chuyển qua các đường mòn, lối mở.</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-center h-8">
+                            <span class="text-2xl text-gray-400">↓</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="flex-shrink-0 bg-yellow-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">2</span>
+                            <div class="p-3 bg-gray-100 rounded-lg flex-1">
+                                <h4 class="font-semibold">Tập kết nội địa</h4>
+                                <p class="text-sm text-gray-600">Tập kết tại các khu vực hẻo lánh, nhà dân.</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-center h-8">
+                            <span class="text-2xl text-gray-400">↓</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="flex-shrink-0 bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">3</span>
+                            <div class="p-3 bg-gray-100 rounded-lg flex-1">
+                                <h4 class="font-semibold">Tiêu thụ & Vận chuyển đi</h4>
+                                <p class="text-sm text-gray-600">Chia nhỏ để tiêu thụ tại chỗ hoặc vận chuyển đi các tỉnh khác.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="solutions-section" class="content-section">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Phòng chống & Giải pháp</h2>
+            <p class="text-gray-700 mb-6 max-w-3xl mx-auto text-center">
+                Dựa trên các phân tích, phần này trình bày các nỗ lực đã triển khai, những thách thức còn tồn tại và các giải pháp, khuyến nghị nhằm tăng cường hiệu quả công tác phòng chống ma túy.
+            </p>
+
+            <div class="bg-white rounded-lg shadow-md w-full max-w-4xl mx-auto">
+                <div class="border-b border-gray-200">
+                    <nav class="flex justify-center -mb-px space-x-4" aria-label="Tabs">
+                        <button class="solution-tab-btn tab-btn active" data-target="efforts">Nỗ lực chính</button>
+                        <button class="solution-tab-btn tab-btn" data-target="challenges">Thách thức</button>
+                        <button class="solution-tab-btn tab-btn" data-target="recommendations">Giải pháp & Khuyến nghị</button>
+                    </nav>
+                </div>
+                <div class="p-6 md:p-8">
+                    <div id="efforts-tab" class="solution-tab-content">
+                        <h3 class="text-xl font-semibold text-blue-700 mb-3">Các nỗ lực đã triển khai</h3>
+                        <ul class="list-disc pl-6 space-y-2 text-gray-700">
+                            <li>Tăng cường tuần tra, kiểm soát chặt chẽ tại các khu vực biên giới, đường mòn, lối mở.</li>
+                            <li>Triệt phá nhiều đường dây, ổ nhóm tội phạm ma túy lớn, bắt giữ các đối tượng chủ mưu.</li>
+                            <li>Đẩy mạnh công tác tuyên truyền, giáo dục về tác hại của ma túy đến người dân, đặc biệt là thanh thiếu niên.</li>
+                            <li>Tổ chức các hoạt động cai nghiện, tái hòa nhập cộng đồng cho người nghiện.</li>
+                            <li>Hợp tác quốc tế và phối hợp với các tỉnh lân cận trong việc trao đổi thông tin và truy bắt tội phạm.</li>
+                        </ul>
+                    </div>
+                    <div id="challenges-tab" class="solution-tab-content" style="display: none;">
+                        <h3 class="text-xl font-semibold text-red-700 mb-3">Những thách thức còn tồn tại</h3>
+                        <ul class="list-disc pl-6 space-y-2 text-gray-700">
+                            <li>Địa hình biên giới phức tạp, gây khó khăn cho công tác kiểm soát và ngăn chặn.</li>
+                            <li>Sự xuất hiện của các loại ma túy tổng hợp mới, khó phát hiện và kiểm soát.</li>
+                            <li>Tỷ lệ tái nghiện còn cao, công tác quản lý sau cai nghiện còn nhiều bất cập.</li>
+                            <li>Nhận thức của một bộ phận người dân còn hạn chế, dễ bị lôi kéo vào con đường phạm tội.</li>
+                            <li>Sự tinh vi của tội phạm ma túy, sử dụng công nghệ cao để liên lạc và vận chuyển.</li>
+                        </ul>
+                    </div>
+                    <div id="recommendations-tab" class="solution-tab-content" style="display: none;">
+                        <h3 class="text-xl font-semibold text-green-700 mb-3">Giải pháp & Khuyến nghị</h3>
+                        <ul class="list-disc pl-6 space-y-2 text-gray-700">
+                            <li>Đầu tư trang thiết bị, công nghệ hiện đại cho lực lượng phòng chống ma túy.</li>
+                            <li>Nâng cao năng lực chuyên môn, nghiệp vụ cho cán bộ trực tiếp làm công tác này.</li>
+                            <li>Xây dựng các mô hình cai nghiện, hỗ trợ sau cai hiệu quả, gắn liền với tạo việc làm.</li>
+                            <li>Phát động sâu rộng phong trào toàn dân tham gia phòng chống ma túy.</li>
+                            <li>Tăng cường hợp tác quốc tế, đặc biệt là với các nước láng giềng, trong việc kiểm soát nguồn cung.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-12 py-6">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-sm">&copy; 2024. Báo cáo này được tạo tự động dựa trên dữ liệu giả định cho mục đích minh họa.</p>
+            <p class="text-xs text-gray-400 mt-1">Thông tin không đại diện cho số liệu chính thức.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const allData = {
+                kpi: {
+                    all: { cases: 512, arrests: 678, users: 2150 },
+                    '2023': { cases: 180, arrests: 240, users: 2150 },
+                    '2022': { cases: 172, arrests: 228, users: 2010 },
+                    '2021': { cases: 160, arrests: 210, users: 1950 }
+                },
+                trend: {
+                    labels: ['2021', '2022', '2023'],
+                    data: [160, 172, 180]
+                },
+                drugTypes: {
+                    all: { labels: ['Heroin', 'Ma túy tổng hợp', 'Cần sa', 'Khác'], data: [55, 30, 10, 5] },
+                    '2023': { labels: ['Heroin', 'Ma túy tổng hợp', 'Cần sa', 'Khác'], data: [45, 40, 10, 5] },
+                    '2022': { labels: ['Heroin', 'Ma túy tổng hợp', 'Cần sa', 'Khác'], data: [55, 30, 10, 5] },
+                    '2021': { labels: ['Heroin', 'Ma túy tổng hợp', 'Cần sa', 'Khác'], data: [60, 25, 10, 5] }
+                },
+                districts: {
+                    all: { labels: ['TP. Cao Bằng', 'H. Trùng Khánh', 'H. Quảng Hòa', 'H. Thạch An', 'H. Hà Quảng'], data: [150, 95, 80, 75, 60] },
+                    '2023': { labels: ['TP. Cao Bằng', 'H. Trùng Khánh', 'H. Quảng Hòa', 'H. Thạch An', 'H. Hà Quảng'], data: [60, 35, 30, 25, 20] },
+                    '2022': { labels: ['TP. Cao Bằng', 'H. Trùng Khánh', 'H. Quảng Hòa', 'H. Thạch An', 'H. Hà Quảng'], data: [50, 30, 25, 25, 18] },
+                    '2021': { labels: ['TP. Cao Bằng', 'H. Trùng Khánh', 'H. Quảng Hòa', 'H. Thạch An', 'H. Hà Quảng'], data: [40, 30, 25, 25, 22] }
+                },
+                ages: {
+                    labels: ['Dưới 18', '18-25', '26-35', '36-45', 'Trên 45'],
+                    data: [5, 35, 40, 15, 5]
+                }
+            };
+
+            let trendChart, drugTypeChart, districtChart, ageChart;
+            const chartConfig = {
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#1a202c',
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: '#000000',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#4a5568' },
+                        grid: { display: false }
+                    },
+                    y: {
+                        ticks: { color: '#4a5568' },
+                        grid: { color: '#e2e8f0' }
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false
+            };
+
+            function initCharts() {
+                const trendCtx = document.getElementById('trendChart').getContext('2d');
+                trendChart = new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: allData.trend.labels,
+                        datasets: [{
+                            label: 'Số vụ phát hiện',
+                            data: allData.trend.data,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: chartConfig
+                });
+
+                const drugTypeCtx = document.getElementById('drugTypeChart').getContext('2d');
+                drugTypeChart = new Chart(drugTypeCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: allData.drugTypes.all.labels,
+                        datasets: [{
+                            label: 'Tỷ trọng',
+                            data: allData.drugTypes.all.data,
+                            backgroundColor: ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#6b7280'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#1a202c',
+                                    font: { size: 12 }
+                                }
+                            },
+                            tooltip: chartConfig.plugins.tooltip
+                        }
+                    }
+                });
+
+                const districtCtx = document.getElementById('districtChart').getContext('2d');
+                districtChart = new Chart(districtCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: allData.districts.all.labels,
+                        datasets: [{
+                            label: 'Số vụ việc',
+                            data: allData.districts.all.data,
+                            backgroundColor: '#10b981',
+                        }]
+                    },
+                    options: { ...chartConfig, scales: { ...chartConfig.scales, x: { ...chartConfig.scales.x, ticks: { ...chartConfig.scales.x.ticks, maxRotation: 60, minRotation: 30 } } } }
+                });
+
+                const ageCtx = document.getElementById('ageChart').getContext('2d');
+                ageChart = new Chart(ageCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: allData.ages.labels,
+                        datasets: [{
+                            label: 'Tỷ lệ phần trăm (%)',
+                            data: allData.ages.data,
+                            backgroundColor: '#ef4444',
+                        }]
+                    },
+                    options: { ...chartConfig, indexAxis: 'y' }
+                });
+            }
+
+            function updateAnalysisData(year) {
+                const kpiData = allData.kpi[year];
+                document.getElementById('kpi-cases').textContent = kpiData.cases;
+                document.getElementById('kpi-arrests').textContent = kpiData.arrests;
+                document.getElementById('kpi-users').textContent = kpiData.users;
+
+                const drugData = allData.drugTypes[year];
+                drugTypeChart.data.labels = drugData.labels;
+                drugTypeChart.data.datasets[0].data = drugData.data;
+                drugTypeChart.update();
+
+                const districtData = allData.districts[year];
+                districtChart.data.labels = districtData.labels;
+                districtChart.data.datasets[0].data = districtData.data;
+                districtChart.update();
+
+                const yearText = year === 'all' ? 'tất cả các năm' : `năm ${year}`;
+                document.getElementById('drug-type-context').textContent = `Phân tích cơ cấu các loại ma túy bị thu giữ trong ${yearText}.`;
+                document.getElementById('district-context').textContent = `Số vụ việc được ghi nhận tại các địa bàn trọng điểm trong ${yearText}.`;
+            }
+
+            document.getElementById('year-filter').addEventListener('change', (e) => {
+                updateAnalysisData(e.target.value);
+            });
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    const targetId = e.target.getAttribute('data-target');
+                    document.querySelectorAll('.content-section').forEach(section => {
+                        section.classList.remove('active');
+                        if (section.id === `${targetId}-section`) {
+                            section.classList.add('active');
+                        }
+                    });
+                });
+            });
+
+            document.querySelectorAll('.solution-tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.solution-tab-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    const targetId = e.target.getAttribute('data-target');
+                    document.querySelectorAll('.solution-tab-content').forEach(content => {
+                        content.style.display = 'none';
+                        if (content.id === `${targetId}-tab`) {
+                            content.style.display = 'block';
+                        }
+                    });
+                });
+            });
+
+            initCharts();
+            updateAnalysisData('all');
+        });
+    </script>
+</body>
+</html>
